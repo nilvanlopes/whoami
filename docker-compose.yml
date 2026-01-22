@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  whoami:
+    image: traefik/whoami:latest
+    networks:
+      - traefik-public
+    deploy:
+      mode: replicated
+      replicas: 2
+      labels:
+        - "traefik.enable=true"
+        # Router HTTPS
+        - "traefik.http.routers.whoami-secure.rule=Host(`${WHOAMI_HOST}`)"
+        - "traefik.http.routers.whoami-secure.entrypoints=websecure"
+        - "traefik.http.routers.whoami-secure.tls=true"
+        - "traefik.http.routers.whoami-secure.tls.certresolver=cloudflare"
+        # Service
+        - "traefik.http.services.whoami.loadbalancer.server.port=80"
+        - "traefik.docker.network=traefik-public"
+        - "traefik.http.routers.whoami-secure.middlewares=crowdsec@file"
+      
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+networks:
+  traefik-public:
+    external: true
